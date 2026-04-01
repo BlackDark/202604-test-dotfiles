@@ -1,5 +1,5 @@
 {{- $env := promptChoiceOnce . "env" "Choose Environment"
-    (list "work" "personal" "other") "other" -}}
+    (list "work" "personal" "ubuntu-agent" "other") "other" -}}
 
 {{- $ssh_azure_hosts := "" -}}
 {{- if eq $env "work" -}}
@@ -30,6 +30,20 @@ color = "on"
 [data]
     env = {{ $env | quote }}
     ssh_azure_hosts = {{ $ssh_azure_hosts | quote }}
+
+[data.models]
+{{- if eq $env "ubuntu-agent" }}
+    default = "ollama/minimax-m2.5-229b"
+    general = "ollama/glm-4.7"
+    explore = "ollama/glm-4.7"
+    commit = "ollama/glm-4.7"
+{{- else }}
+    default = "anthropic/claude-opus-4-6"
+    general = "fireworks-ai/accounts/fireworks/routers/kimi-k2p5-turbo"
+    explore = "fireworks-ai/accounts/fireworks/routers/kimi-k2p5-turbo"
+    commit = "anthropic/claude-opus-4-6"
+{{- end }}
+
 
 [edit]
 {{- if lookPath "code" }}

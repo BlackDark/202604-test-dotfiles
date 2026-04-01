@@ -22,7 +22,7 @@ Place in `.opencode/agents/<name>.md` (project) or `~/.config/opencode/agents/<n
 ---
 description: Reviews code for best practices and potential issues
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: {{ "{{ .models.default }}" }}
 permission:
   edit: deny
 ---

@@ -5,7 +5,10 @@
 
 set -euo pipefail
 
+readonly CHEZMOI_ENV="{{ .env }}"
+
 # Set INSTALL_UI_APPS=true to install optional desktop applications on Linux.
+# The ubuntu-agent environment always skips desktop/UI packages.
 INSTALL_UI_APPS="${INSTALL_UI_APPS:-false}"
 
 # Terminal colors
@@ -38,6 +41,10 @@ die() {
 
 command_exists() {
   command -v "$1" >/dev/null 2>&1
+}
+
+should_install_ui_apps() {
+  [[ "$CHEZMOI_ENV" != "ubuntu-agent" && "$INSTALL_UI_APPS" == "true" ]]
 }
 
 detect_platform() {
@@ -117,11 +124,15 @@ install_system_packages() {
     done
     [[ ${#packages[@]} -gt 0 ]] && brew install "${packages[@]}"
 
-    local casks=()
-    for cask in kitty font-fira-code; do
-      brew list --cask "$cask" &>/dev/null || casks+=("$cask")
-    done
-    [[ ${#casks[@]} -gt 0 ]] && brew install --cask "${casks[@]}"
+    if [[ "$CHEZMOI_ENV" == "ubuntu-agent" ]]; then
+      log_info "Skipping desktop UI applications for ubuntu-agent environment"
+    else
+      local casks=()
+      for cask in kitty font-fira-code; do
+        brew list --cask "$cask" &>/dev/null || casks+=("$cask")
+      done
+      [[ ${#casks[@]} -gt 0 ]] && brew install --cask "${casks[@]}"
+    fi
     ;;
   fedora)
     local packages=(zsh rbw)
@@ -129,10 +140,10 @@ install_system_packages() {
 
     sudo dnf install -y "${packages[@]}" || die "dnf package installation failed"
 
-    if [[ "$INSTALL_UI_APPS" == "true" ]]; then
+    if should_install_ui_apps; then
       sudo dnf install -y "${ui_packages[@]}" || die "dnf UI package installation failed"
     else
-      log_info "Skipping optional UI applications on Fedora (set INSTALL_UI_APPS=true to enable)"
+      log_info "Skipping optional UI applications on Fedora"
     fi
     ;;
   ubuntu)
@@ -148,10 +159,10 @@ install_system_packages() {
     sudo apt-get update || die "apt-get update failed"
     sudo apt-get install -y "${packages[@]}" || die "apt package installation failed"
 
-    if [[ "$INSTALL_UI_APPS" == "true" ]]; then
+    if should_install_ui_apps; then
       sudo apt-get install -y "${ui_packages[@]}" || die "apt UI package installation failed"
     else
-      log_info "Skipping optional UI applications on Ubuntu (set INSTALL_UI_APPS=true to enable)"
+      log_info "Skipping optional UI applications on Ubuntu"
     fi
     ;;
   esac
@@ -323,6 +334,7 @@ setup_zsh_shell() {
 
 main() {
   log_info "Running system setup..."
+  log_info "Environment: $CHEZMOI_ENV"
 
   local platform
   platform="$(detect_platform)"

@@ -1,16 +1,19 @@
 # Terminal and color support
 set -g default-terminal "tmux-256color"
+{{- if ne .env "ubuntu-agent" }}
 set -ga terminal-overrides ",xterm-kitty:Tc"
+{{- end }}
 
 # Reduce escape delay (default 500ms)
 set -g escape-time 10
 
-# Enable extended keys (CSI u) so TUI apps like opencode can distinguish
-# keys properly (e.g., Delete vs End). Kitty keyboard protocol is not
-# supported by tmux; this is the next best thing.
+# Enable extended keys so TUI apps like opencode can distinguish keys properly.
+# `extended-keys-format` is intentionally omitted because older tmux builds on
+# Ubuntu reject it as an invalid option and fail to load the rest of the config.
 set -s extended-keys on
-set -g extended-keys-format csi-u
+{{- if ne .env "ubuntu-agent" }}
 set -as terminal-features 'xterm-kitty:extkeys'
+{{- end }}
 
 # Increase scrollback (default 2000)
 set -g history-limit 50000
@@ -23,7 +26,7 @@ set -g base-index 1
 setw -g pane-base-index 1
 set -g renumber-windows on
 
-# Direct keybindings (no prefix) - match kitty muscle memory
+# Direct keybindings (no prefix), match kitty muscle memory
 bind -n C-S-e split-window -v -c "#{pane_current_path}"
 bind -n C-S-o split-window -h -c "#{pane_current_path}"
 
