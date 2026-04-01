@@ -21,7 +21,7 @@ Ensure git is installed (usually present by default on macOS and Fedora).
 Install dotfiles via chezmoi:
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply --ssh BlackDark/dotfiles
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply --ssh BlackDark/202604-test-dotfiles
 ```
 
 Run automated system setup:

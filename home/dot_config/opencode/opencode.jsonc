@@ -39,7 +39,9 @@
       "type": "local",
       "command": ["npx", "-y", "mcp-searxng@latest"],
       "environment": {
-        "SEARXNG_URL": "https://search.dailey.app",
+        "SEARXNG_URL": "{env:SEARXNG_URL}",
+        "AUTH_USERNAME": "{env:SEARXNG_USER}",
+        "AUTH_PASSWORD": "{env:SEARXNG_PASS}",
       },
     },
   },
