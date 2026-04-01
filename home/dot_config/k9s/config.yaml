@@ -1,0 +1,6 @@
+k9s:
+  # defaultView: "events"
+  ui:
+    logoless: true
+  logger:
+    textWrap: true

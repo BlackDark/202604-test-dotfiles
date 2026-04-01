@@ -1,0 +1,42 @@
+# Machine-specific files that should not be tracked by chezmoi
+.gitkeep
+.gitconfig.local
+
+
+
+# Run the appropriate scripts based on OS
+{{ if eq .chezmoi.os "windows" }}
+.chezmoiscripts/*.sh
+{{ else }}
+.chezmoiscripts/*.ps1
+{{ end }}
+
+# Exclude these files if we're not on MacOS
+{{ if ne .chezmoi.os "darwin" }}
+.config/iterm2/**
+.config/karabiner/**
+Library/**
+{{ end }}
+
+# rbw reads from ~/Library/Application Support/ on macOS, not XDG
+{{ if eq .chezmoi.os "darwin" }}
+.config/rbw/**
+{{ end }}
+
+# Use the appropriate powershell profile based on OS
+# See: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-7.5#profile-types-and-locations
+{{ if ne .chezmoi.os "windows" }}
+Documents/**
+{{ else }}
+.config/powershell/**
+{{ end }}
+
+# Exclude AppData directory on non-Windows platforms
+{{ if ne .chezmoi.os "windows" }}
+AppData/**
+{{ end }}
+
+# Exclude Linux-specific files on non-Linux platforms
+{{ if ne .chezmoi.os "linux" }}
+.config/systemd/**
+{{ end }}

@@ -1,0 +1,120 @@
+# yaml-language-server:$schema=https://raw.githubusercontent.com/jesseduffield/lazygit/master/schema/config.json
+promptToReturnFromSubprocess: false
+disableStartupPopups: true
+notARepository: skip
+
+refresher:
+  refreshInterval: 2
+
+git:
+  autoRefresh: true
+  pagers:
+  - pager: delta --dark --paging=never
+
+gui:
+  mouseEvents: false
+  mainPanelSplitMode: vertical
+
+keybinding:
+  universal:
+    refresh: "<f5>"
+    prevPage: <pgup>
+    nextPage: <pgdown>
+    scrollLeft: "<"
+    scrollRight: ">"
+    gotoTop: "<disabled>"  # conflicts with scrollLeft
+    gotoBottom: "<disabled>"  # conflicts with scrollRight
+    scrollUpMain: ","
+    scrollDownMain: "."
+    nextItem-alt: "<disabled>"
+    prevItem-alt: "<disabled>"
+    openRecentRepos: "`"
+  commits:
+    amendToCommit: a
+    resetCommitAuthor: A
+    moveDownCommit: j
+    moveUpCommit: k
+    openLogMenu: l
+    markCommitAsFixup: F
+    createFixupCommit: f
+  files:
+    amendLastCommit: a
+    toggleStagedAll: s
+    stashAllChanges: "<disabled>"
+    toggleTreeView: "<disabled>"
+
+customCommands:
+- key: D
+  command: git diff --stat --patch --color=always {{.SelectedCommit.Hash}}
+  context: commits,subCommits
+  description: Diff against the selected commit
+  output: terminal
+- key: C
+  description: OpenCode commit with instructions
+  context: files
+  prompts:
+  - type: input
+    title: "Commit instructions (optional - leave empty for staged changes only):"
+    key: CommitArgs
+  command: opencode run --agent commit {{if .Form.CommitArgs}}{{.Form.CommitArgs | quote}}{{else}}"staged"{{end}}
+  loadingText: OpenCode is committing...
+  output: terminal
+- key: f
+  command: git merge --ff-only {{.SelectedLocalBranch.Name}}
+  context: localBranches
+  description: Fast-forward merge selected branch to current branch
+  output: log
+- key: f
+  command: git merge --ff-only {{.SelectedRemoteBranch.RemoteName}}/{{.SelectedRemoteBranch.Name}}
+  context: remoteBranches
+  description: Fast-forward merge selected remote branch to current branch
+  output: log
+- key: f
+  command: git merge --ff-only {{.SelectedCommit.Hash}}
+  context: subCommits
+  description: Fast-forward merge current branch to selected commit
+  output: log
+- key: x
+  command: git format-patch -1 {{.SelectedCommit.Hash}}
+  context: commits,subCommits
+  description: Create patch file for selected commit
+  output: popup
+- key: X
+  description: Patch creation menu
+  commandMenu:
+  - key: s
+    command: git format-patch -1 {{.SelectedCommit.Hash}}
+    context: commits,subCommits
+    description: Single commit patch (current directory)
+    output: popup
+  - key: d
+    command: git format-patch -1 {{.SelectedCommit.Hash}} -o {{.Form.OutputDir | quote}}
+    context: commits,subCommits
+    description: Single commit patch (custom directory)
+    output: popup
+    prompts:
+    - type: input
+      title: Output directory for patch file
+      key: OutputDir
+      initialValue: patches
+  - key: r
+    command: git format-patch {{.SelectedCommitRange.From}}^..{{.SelectedCommitRange.To}}
+    context: commits,subCommits
+    description: Range patch (selected commits)
+    output: popup
+- key: <c-x>
+  command: git format-patch {{.SelectedCommitRange.From}}^..{{.SelectedCommitRange.To}}
+  context: commits,subCommits
+  description: Create patch files for selected commit range
+  output: popup
+- key: H
+  description: Run pre-commit hooks
+  context: files
+  command: pre-commit run
+  output: terminal
+  loadingText: Running pre-commit hooks...
+- key: O
+  command: open-here
+  context: global
+  description: Open repository directory in file manager
+  output: none

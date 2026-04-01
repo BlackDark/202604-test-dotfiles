@@ -1,0 +1,45 @@
+[tools]
+age = "latest"
+cosign = "latest"
+delta = "latest"
+fzf = "latest"
+gh = "latest"
+jq = "latest"
+lazygit = "latest"
+lsd = "latest"
+markdownlint-cli2 = "latest"
+powershell = "latest"
+pre-commit = "latest"
+rclone = "latest"
+ripgrep = "latest"
+slsa-verifier = "latest"
+task = "latest"
+tmux = "latest"
+uv = "latest"
+yamllint = "latest"
+yq = "latest"
+bun = "latest"
+
+# Node and NPM packages
+node = "latest"
+"npm:@commitlint/cli" = "latest"
+"npm:@commitlint/config-conventional" = "latest"
+
+# Don't use this because it doesn't update frequently enough
+# Use: curl -fsSL https://opencode.ai/install | bash
+# opencode = "latest"
+
+[settings]
+activate_aggressive = true
+auto_install = true
+jobs = 4
+trusted_config_paths = ["~/.config/mise"]
+experimental = true
+env_file = ".env"
+node.verify = false
+
+[env]
+_.source = ["~/.config/mise/scripts/node-path.sh"]
+
+[hooks]
+cd = "mise current 2>/dev/null | head -5 || true"

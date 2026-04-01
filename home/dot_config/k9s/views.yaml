@@ -1,0 +1,37 @@
+---
+views:
+  # Optimized containers view - prioritize essential info and resource usage
+  v1/pods:
+    sortColumn: AGE:desc
+    columns:
+    - NAME
+    - STATUS
+    - READY
+    - "%MEM/L"
+    - MEM
+    - CPU
+    - AGE
+    - RESTARTS
+    - NAMESPACE
+    - NODE
+    - PF|H
+    - "%MEM/R|W"
+    - "%CPU/R|W"
+    - "%CPU/L|W"
+    - IP|W
+
+  # Optimized events view - hide SUBOBJECT and SOURCE columns to make MESSAGE more visible
+  events:
+    sortColumn: LAST SEEN:asc
+    columns:
+    - LAST SEEN
+    - TYPE
+    - REASON
+    - OBJECT
+    - NAMESPACE
+    - MESSAGE
+    - SOURCE|W
+    - FIRST SEEN|W
+    - COUNT|W
+    - NAME|W
+    - SUBOBJECT|W

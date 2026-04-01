@@ -1,0 +1,64 @@
+---
+repos:
+# Core file quality checks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: trailing-whitespace
+    args: [--markdown-linebreak-ext=md]
+  - id: end-of-file-fixer
+  - id: check-yaml
+    args: [--allow-multiple-documents]
+  - id: check-json
+    exclude: ^home/\.chezmoitemplates/
+  - id: check-merge-conflict
+  - id: check-added-large-files
+    args: [--maxkb=500]
+  - id: mixed-line-ending
+    args: [--fix=lf]
+
+# Python: Ruff for linting and formatting
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.15.4
+  hooks:
+  - id: ruff-check
+    args: [--fix]
+    files: ^(.*\.py|.*/executable_.*)$
+  - id: ruff-format
+    files: ^(.*\.py|.*/executable_.*)$
+
+
+# YAML validation
+- repo: https://github.com/adrienverge/yamllint
+  rev: v1.38.0
+  hooks:
+  - id: yamllint
+    args: [--format, parsable, --strict]
+
+# PowerShell script analysis (local hook)
+- repo: local
+  hooks:
+  - id: psscriptanalyzer
+    name: PowerShell Script Analyzer
+    entry: pwsh
+    args: [-Command, "Invoke-ScriptAnalyzer", "-Path"]
+    language: system
+    files: \.(ps1|psm1|psd1)$
+    stages: [manual]
+
+# TypeScript: Biome for linting and formatting
+- repo: local
+  hooks:
+  - id: biome
+    name: Biome check
+    entry: biome check --write --no-errors-on-unmatched
+    language: system
+    files: \.(ts|tsx|js|jsx)$
+
+# Markdown formatting
+- repo: https://github.com/DavidAnson/markdownlint-cli2
+  rev: v0.21.0
+  hooks:
+  - id: markdownlint-cli2
+    args: [--fix]
+    exclude: ^docs/external/

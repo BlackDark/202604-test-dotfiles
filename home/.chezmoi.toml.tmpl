@@ -1,0 +1,51 @@
+{{- $env := promptChoiceOnce . "env" "Choose Environment"
+    (list "work" "personal" "other") "other" -}}
+
+{{- $ssh_azure_hosts := "" -}}
+{{- if eq $env "work" -}}
+{{- $ssh_azure_hosts := promptStringOnce . "ssh_azure_hosts"
+    "Additional self-hosted AzDO hostnames for SSH" "" -}}
+{{- end -}}
+
+######################################################################################
+## According to the docs, this must remain above all other configuration
+encryption = "age"
+[age]
+    identity = "key.txt"
+    recipient = "age1zf6u0y5ljwa2hsyhe05hpjp6ad7lzdl5979ejdsj9de3nyx4y5yq987dse"
+######################################################################################
+
+color = "on"
+
+[diff]
+    pager = "delta"
+
+[interpreters.sh]
+    command = "bash"
+
+[interpreters.ps1]
+    command = "pwsh"
+    args = ["-ExecutionPolicy", "Bypass", "-File"]
+
+[data]
+    env = {{ $env | quote }}
+    ssh_azure_hosts = {{ $ssh_azure_hosts | quote }}
+
+[edit]
+{{- if lookPath "code" }}
+    command = "code"
+    args = ["--new-window", "--wait"]
+{{- else if lookPath "nano" }}
+    command = "nano"
+{{- end }}
+
+[merge]
+    command = "bcomp"
+    args = [
+        {{ printf "%q" "{{ .Destination }}" }},
+        {{ printf "%q" "{{ .Source }}" }},
+        {{ printf "%q" "{{ .Target }}" }},
+    ]
+
+[update]
+    args = ["--init"]
