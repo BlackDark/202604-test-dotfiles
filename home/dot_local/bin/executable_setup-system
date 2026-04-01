@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # System setup helper - automated system configuration after chezmoi apply
-# Supports: macOS, Fedora
+# Supports: macOS, Fedora, Ubuntu
 # Idempotent: safe to run multiple times
 
 set -euo pipefail
+
+# Set INSTALL_UI_APPS=true to install optional desktop applications on Linux.
+INSTALL_UI_APPS="${INSTALL_UI_APPS:-false}"
 
 # Terminal colors
 readonly RED='\033[0;31m'
@@ -43,14 +46,28 @@ detect_platform() {
     echo "macos"
     ;;
   Linux)
-    if [[ -f /etc/fedora-release ]]; then
-      echo "fedora"
-    else
-      die "Unsupported Linux distribution. This script supports Fedora only."
+    if [[ -f /etc/os-release ]]; then
+      # shellcheck disable=SC1091
+      . /etc/os-release
+      case "${ID:-}" in
+      fedora)
+        echo "fedora"
+        return 0
+        ;;
+      ubuntu)
+        echo "ubuntu"
+        return 0
+        ;;
+      *)
+        die "Unsupported Linux distribution. This script supports Fedora and Ubuntu only."
+        ;;
+      esac
     fi
+
+    die "Unsupported Linux distribution. This script supports Fedora and Ubuntu only."
     ;;
   *)
-    die "Unsupported platform. This script supports macOS and Fedora only."
+    die "Unsupported platform. This script supports macOS, Fedora, and Ubuntu only."
     ;;
   esac
 }
@@ -107,7 +124,35 @@ install_system_packages() {
     [[ ${#casks[@]} -gt 0 ]] && brew install --cask "${casks[@]}"
     ;;
   fedora)
-    sudo dnf install -y zsh rbw kitty fira-code-fonts || die "dnf package installation failed"
+    local packages=(zsh rbw)
+    local ui_packages=(kitty fira-code-fonts)
+
+    sudo dnf install -y "${packages[@]}" || die "dnf package installation failed"
+
+    if [[ "$INSTALL_UI_APPS" == "true" ]]; then
+      sudo dnf install -y "${ui_packages[@]}" || die "dnf UI package installation failed"
+    else
+      log_info "Skipping optional UI applications on Fedora (set INSTALL_UI_APPS=true to enable)"
+    fi
+    ;;
+  ubuntu)
+    local packages=(zsh)
+    local ui_packages=(kitty fonts-firacode)
+
+    if apt-cache show rbw >/dev/null 2>&1; then
+      packages+=(rbw)
+    else
+      log_warn "rbw package not available via apt on this Ubuntu release; skipping package install"
+    fi
+
+    sudo apt-get update || die "apt-get update failed"
+    sudo apt-get install -y "${packages[@]}" || die "apt package installation failed"
+
+    if [[ "$INSTALL_UI_APPS" == "true" ]]; then
+      sudo apt-get install -y "${ui_packages[@]}" || die "apt UI package installation failed"
+    else
+      log_info "Skipping optional UI applications on Ubuntu (set INSTALL_UI_APPS=true to enable)"
+    fi
     ;;
   esac
 
@@ -118,7 +163,8 @@ configure_rbw() {
   log_info "Configuring rbw (Bitwarden CLI)..."
 
   if ! command_exists rbw; then
-    die "rbw not found - package installation may have failed"
+    log_warn "rbw not found, skipping Bitwarden CLI configuration"
+    return 0
   fi
 
   local current_email
@@ -191,6 +237,13 @@ install_mise() {
     fi
     export PATH="$HOME/.local/bin:$PATH"
     ;;
+  ubuntu)
+    log_info "Installing mise via official installer..."
+    if ! curl -fsSL https://mise.run | sh; then
+      die "mise installation failed"
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    ;;
   esac
 
   if command_exists mise; then
@@ -232,7 +285,7 @@ setup_zsh_shell() {
   macos)
     zsh_path="$(brew --prefix)/bin/zsh"
     ;;
-  fedora)
+  fedora | ubuntu)
     zsh_path="/usr/bin/zsh"
     ;;
   esac
