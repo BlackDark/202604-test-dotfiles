@@ -33,23 +33,14 @@
     "opencode-gemini-auth@latest",
     "opencode-claude-auth@latest",
   ],
-  "mcp": {
-    "searxng": {
-      "type": "local",
-      "command": ["npx", "-y", "mcp-searxng@latest"],
-      "environment": {
-        "SEARXNG_URL": "{env:SEARXNG_URL}",
-        "AUTH_USERNAME": "{env:SEARXNG_USER}",
-        "AUTH_PASSWORD": "{env:SEARXNG_PASS}",
-      },
-    },
-  },
+  "mcp": {},
   "permission": {
     "*": "allow",
     "grep": "deny", // require ripgrep instead
 
-    // searxng replaces websearch only; webfetch is built-in
+    // web CLI replaces both search and fetch; deny built-in equivalents
     "websearch": "deny",
+    "webfetch": "deny",
     "*_web_url_read": "deny",
 
     "bash": {
