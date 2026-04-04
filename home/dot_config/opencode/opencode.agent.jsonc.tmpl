@@ -1,0 +1,50 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [],
+  "model": "ollama/glm-4.7",
+  "agent": {
+    "general": {
+      "tools": { "question": false },
+      "model": "ollama/glm-4.7",
+    },
+    "explore": {
+      "tools": { "question": false },
+      "model": "ollama/glm-4.7",
+    },
+  },
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama",
+      "options": {
+        "baseURL": "https://ai-gateway.dsi-experimente.de/v1"
+      },
+      "models": {
+        "minimax-m2.5-229b": {
+          "name": "minimax-m2.5-229b"
+        },
+        "gpt-oss-120b-working": {
+          "name": "gpt-oss-120b-working"
+        },
+        "qwen3-32b": {
+          "name": "qwen3-32b"
+        },
+        "openai-gpt-oss-120b": {
+          "name": "openai-gpt-oss-120b"
+        },
+        "teuken-7b-instruct-research": {
+          "name": "teuken-7b-instruct-research"
+        },
+        "qwen3-30b-a3b-instruct-2507": {
+          "name": "qwen3-30b-a3b-instruct-2507"
+        },
+        "meta-llama-3.1-8b-instruct": {
+          "name": "meta-llama-3.1-8b-instruct"
+        },
+        "glm-4.7": {
+          "name": "glm-4.7"
+        }
+      }
+    }
+  }
+}
