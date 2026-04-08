@@ -1,0 +1,7 @@
+# Full SHA of the last commit from upstream (remote `upstream`, its default branch) that you have
+# cherry-picked onto this branch. After `git fetch upstream`, list pending commits with:
+#   LAST=$(grep -E '^[0-9a-f]{40}$' GIT_LAST_CHERRYPICK_HASH) && git rev-list --reverse ${LAST}..upstream/master
+# After each successful cherry-pick, set this file to that upstream commit's SHA (replace the line
+# below). Scripts must read the hash with grep so comments are ignored, e.g.:
+#   LAST=$(grep -E '^[0-9a-f]{40}$' GIT_LAST_CHERRYPICK_HASH | head -1)
+210a7907649b97b27bf4c4bfb2c67667cc6cf449
