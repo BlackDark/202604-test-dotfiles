@@ -7,8 +7,6 @@ mode: subagent
 model: {{ .models.general }}
 permission:
   "*": deny
-  read: allow
-  external_directory: allow
   bash:
     "*": deny
     "cat *": allow
