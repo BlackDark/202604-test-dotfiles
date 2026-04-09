@@ -126,6 +126,8 @@ arrive too late.
 - `git-hunks`: REQUIRED when staging individual hunks or partial file changes
 - `gh-pr-review`: REQUIRED when posting code review comments on pull requests
 - `command-authoring`: REQUIRED when creating, editing, or refactoring custom commands
+- `in-worktree`: REQUIRED when running `/in-worktree` or when `WORKTREE_ROOT` is set for isolated
+  worktree work under `/tmp`
 - `humanizer`: REQUIRED when producing any text read by humans: documentation, changelogs, commit
   messages, code comments, PR/issue descriptions, emails, messages, forum posts, README files, and
   any other non-identifier text. NOT required for log messages or variable/function naming. The
