@@ -1,0 +1,11 @@
+# Override at apply time: SEARXNG_URL, SEARXNG_USER, SEARXNG_PASS,
+# SX_RESULT_COUNT, SX_NO_COLOR (true/false/1/yes, default true)
+
+searxng_url = {{ env "SEARXNG_URL" | quote }}
+
+searxng_username = {{ env "SEARXNG_USER" | quote }}
+searxng_password = {{ env "SEARXNG_PASS" | quote }}
+
+result_count = {{ env "SX_RESULT_COUNT" | default "5" }}
+{{ $noColor := env "SX_NO_COLOR" | default "true" | lower }}
+no_color = {{ if or (eq $noColor "true") (eq $noColor "1") (eq $noColor "yes") }}true{{ else }}false{{ end }}
