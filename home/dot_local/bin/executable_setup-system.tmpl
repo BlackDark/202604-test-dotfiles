@@ -43,6 +43,37 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Reapply PATH and tool env in this bash process after installs (brew/mise/curl installers).
+refresh_shell_environment() {
+  local platform="${1:-}"
+
+  case ":${PATH:-}:" in
+ *":${HOME}/.local/bin:"*) ;;
+  *) export PATH="${HOME}/.local/bin:${PATH:-}" ;;
+  esac
+
+  if [[ "$platform" == "macos" ]]; then
+    if [[ -x /opt/homebrew/bin/brew ]]; then
+      # shellcheck disable=SC2312
+      eval "$(/opt/homebrew/bin/brew shellenv bash)"
+    elif [[ -x /usr/local/bin/brew ]]; then
+      # shellcheck disable=SC2312
+      eval "$(/usr/local/bin/brew shellenv bash)"
+    elif command_exists brew; then
+      # shellcheck disable=SC2312
+      eval "$(brew shellenv bash)"
+    fi
+  elif [[ "$platform" != "macos" ]] && [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+    # shellcheck disable=SC2312
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
+  fi
+
+  if command_exists mise; then
+    # shellcheck disable=SC2312
+    eval "$(mise env -s bash)" 2>/dev/null || true
+  fi
+}
+
 should_install_ui_apps() {
   [[ "$CHEZMOI_ENV" != "ubuntu-agent" && "$INSTALL_UI_APPS" == "true" ]]
 }
@@ -167,6 +198,7 @@ install_system_packages() {
     ;;
   esac
 
+  refresh_shell_environment "$platform"
   log_success "System packages installed"
 }
 
@@ -202,6 +234,8 @@ configure_rbw() {
 }
 
 install_opencode() {
+  local platform="$1"
+
   log_info "Installing OpenCode..."
 
   if command_exists opencode; then
@@ -214,8 +248,7 @@ install_opencode() {
     die "OpenCode installation failed"
   fi
 
-  # Refresh PATH to pick up newly installed opencode
-  export PATH="$HOME/.local/bin:$PATH"
+  refresh_shell_environment "$platform"
 
   if command_exists opencode; then
     log_success "OpenCode installed: $(opencode --version 2>/dev/null || echo 'installed successfully')"
@@ -246,16 +279,16 @@ install_mise() {
     if ! curl -fsSL https://mise.run | sh; then
       die "mise installation failed"
     fi
-    export PATH="$HOME/.local/bin:$PATH"
     ;;
   ubuntu)
     log_info "Installing mise via official installer..."
     if ! curl -fsSL https://mise.run | sh; then
       die "mise installation failed"
     fi
-    export PATH="$HOME/.local/bin:$PATH"
     ;;
   esac
+
+  refresh_shell_environment "$platform"
 
   if command_exists mise; then
     log_success "mise installed: $(mise --version)"
@@ -283,6 +316,7 @@ install_dev_tools() {
   log_info "Upgrading mise tools to latest versions..."
   mise upgrade --yes || log_warn "mise upgrade failed, continuing anyway"
 
+  eval "$(mise env -s bash)" 2>/dev/null || true
   log_success "Development tools installed"
 }
 
@@ -346,9 +380,10 @@ main() {
 
   install_system_packages "$platform"
   configure_rbw
-  install_opencode
+  install_opencode "$platform"
   install_mise "$platform"
   install_dev_tools
+  refresh_shell_environment "$platform"
   setup_zsh_shell "$platform"
 
   echo ""
