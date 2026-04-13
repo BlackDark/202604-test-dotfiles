@@ -8,13 +8,23 @@ Implement the following feature in a fresh git worktree, keeping the current rep
 
 ## Required
 
-You MUST load the `in-worktree` skill alone, before any file read, write, or shell command, and follow
-it completely. The skill defines `ORIGINAL_ROOT`, `WORKTREE_ROOT`, verification gates, and how to run
-git and non-git tools.
+Load the `in-worktree` skill alone before any file read, write, or shell command. If you cannot load
+it, stop and say so.
 
-If you cannot load the skill, stop and say so; do not improvise this workflow.
+## Directory discipline
 
-## Reminder
+As soon as `ACTIVE_WORKDIR` is known (see skill), send **one** user-visible line exactly in this
+form (literal absolute path, no env var reference in the line):
 
-Re-run the skill verification block immediately before `git add`, `git commit`, or `git push`, and
-before any batch of file edits, so you never operate in `"$ORIGINAL_ROOT"` by mistake.
+`Locked workdir: /full/path/to/worktree`
+
+**Every** file tool call (`read`, `write`, `edit`, and similar) MUST use paths under
+`ACTIVE_WORKDIR` after `realpath` when you compare prefixes (handles symlinks and `/private/var` on
+macOS). Do not use workspace-relative paths for edits during this task.
+
+**Git:** only `git -C "$ORIGINAL_ROOT"` during bootstrap, then only `git -C "$ACTIVE_WORKDIR"`;
+no bare `git`. **gh:** `cd "$ACTIVE_WORKDIR" && gh ...` or explicit `-R` from that repo remote.
+
+Re-run the skill verification before `git add`, `git commit`, `git push`, and before each batch of
+file edits. Before commit, run the mechanical `status -sb` and `diff --name-only` checks from the
+skill.

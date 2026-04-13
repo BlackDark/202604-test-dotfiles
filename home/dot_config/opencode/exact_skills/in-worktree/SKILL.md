@@ -1,35 +1,69 @@
 ---
 name: in-worktree
 description: >-
-  Use when running the /in-worktree slash command, implementing a feature in a git worktree under
-  /tmp, or whenever WORKTREE_ROOT is established for an isolated clone of the current repository
+  Use when the user runs /in-worktree, or when only a /tmp worktree may receive edits for the task
 ---
 
-# Isolated git worktree workflow
+# In-worktree session
 
-Purpose: implement work only inside a dedicated worktree. The original repository checkout must
-never receive edits, commits, or pushes from this flow.
+## Memory card
 
-## 1. Lock the original repo root (first shell commands)
+The editor workspace root is **not** the workdir. Relative paths in file tools resolve there and
+will edit the **wrong** tree.
 
-Run this before any other shell command, file tool, or subagent in this flow:
+After setup below yields a real directory, **pin** it for the entire task:
+
+```txt
+ACTIVE_WORKDIR=<absolute path from pwd -P only, never a placeholder>
+```
+
+Until the task ends:
+
+- **Forbidden**: any read, write, or edit on a path that is not under `ACTIVE_WORKDIR` after
+  `realpath` (when `realpath` exists). If paths differ only by symlinks (`/var` vs `/private/var`),
+  normalize before comparing.
+- **Git**: **no** `git` without `-C` in this workflow. Use `git -C "$ORIGINAL_ROOT"` only until
+  `ACTIVE_WORKDIR` is set; after that, use only `git -C "$ACTIVE_WORKDIR"` for all feature git.
+- **Shell** (tests, installs, linters): `cd "$ACTIVE_WORKDIR" && ...` as one line per invocation.
+- **`gh`**: run repo-scoped commands as `cd "$ACTIVE_WORKDIR" && gh ...`, or pass an explicit
+  `-R owner/repo` taken from `git -C "$ACTIVE_WORKDIR" remote -v`. Do not rely on cwd for `gh`.
+- **Other mutators** (shell redirects, MCP or other tools that write files): destinations must
+  resolve under `ACTIVE_WORKDIR` (same `realpath` rule).
+
+Re-pin after subagent handoffs. Re-run the verification block before any batch of file edits or any
+`git add`, `commit`, or `push`.
+
+Optional: if the user can open `ACTIVE_WORKDIR` as the editor workspace, that avoids path mistakes.
+
+Optional detail: [REFERENCE.md](REFERENCE.md) (toolchain bootstrap).
+
+## Setup
+
+First shell command in this flow. Start from inside the **main** checkout you intend to branch from:
 
 ```bash
 ORIGINAL_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)
 ```
 
-Use `"$ORIGINAL_ROOT"` in path form for file operations only when reading the pre-worktree tree is
-required. All implementation work happens under `"$WORKTREE_ROOT"` after it exists.
+From the feature description, choose **BRANCH_SLUG**: lowercase kebab-case, max 5 words, no special
+chars (example: `add-oauth-login-flow`). Then set paths in shell (no angle-bracket placeholders):
 
-## 2. Names and base branch
+```bash
+BRANCH_SLUG="your-branch-slug-here"
+WORKTREE_PATH="/tmp/$(basename "$ORIGINAL_ROOT")-${BRANCH_SLUG}"
+```
 
-From the feature description, produce:
+**CRITICAL:** Replace `your-branch-slug-here` with a real slug before running anything that follows.
+Never run git or file tools with a `BRANCH_SLUG` that still contains `your-branch-slug-here`.
 
-- **branch-slug**: lowercase kebab-case, max 5 words, no special chars (e.g. `add-oauth-login-flow`)
-- **worktree-path**: `/tmp/<repo-name>-<branch-slug>`; `<repo-name>` is the basename of
-  `"$ORIGINAL_ROOT"`
+Optional guard:
 
-Resolve `base_branch` using the main repo only:
+```bash
+case "$BRANCH_SLUG" in *"<"*|*">"*|*"your-branch-slug-here"*)
+  echo "abort: invalid BRANCH_SLUG"; exit 1;; esac
+```
+
+Base branch:
 
 ```bash
 git -C "$ORIGINAL_ROOT" fetch origin
@@ -38,86 +72,73 @@ base_branch=${ref#origin/}
 ```
 
 If `base_branch` is empty, run `git -C "$ORIGINAL_ROOT" remote set-head origin -a` once, then repeat
-the assignment. Abort if still empty.
+the `ref` / `base_branch` lines. Abort if still empty.
 
-## 3. Create the worktree
+Create worktree:
 
 ```bash
-git -C "$ORIGINAL_ROOT" worktree remove --force "<worktree-path>" 2>/dev/null || true
-git -C "$ORIGINAL_ROOT" worktree add -b "<branch-slug>" "<worktree-path>" "origin/${base_branch}"
+git -C "$ORIGINAL_ROOT" worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true
+git -C "$ORIGINAL_ROOT" worktree add -b "$BRANCH_SLUG" "$WORKTREE_PATH" "origin/${base_branch}"
 ```
 
-## 4. Canonical worktree path and verification
-
-Assign the path you will use for every later command:
+Pin and verify (stop and report if any check fails):
 
 ```bash
-WORKTREE_ROOT=$(cd "<worktree-path>" && pwd -P)
-```
-
-Fail fast if any check fails (stop and report; do not edit files):
-
-```bash
-test -n "$WORKTREE_ROOT"
+ACTIVE_WORKDIR=$(cd "$WORKTREE_PATH" && pwd -P)
+test -n "$ACTIVE_WORKDIR"
 test -n "$ORIGINAL_ROOT"
-test "$WORKTREE_ROOT" != "$ORIGINAL_ROOT"
-test "$(git -C "$WORKTREE_ROOT" rev-parse --show-toplevel)" = "$WORKTREE_ROOT"
+test "$ACTIVE_WORKDIR" != "$ORIGINAL_ROOT"
+test "$(git -C "$ACTIVE_WORKDIR" rev-parse --show-toplevel)" = "$ACTIVE_WORKDIR"
 ```
 
-Re-run this four-line check after subshells, subagent handoffs, and **immediately before** `git add`,
-`git commit`, `git push`, or any batch of file writes. If a check fails, fix paths before continuing.
-
-Confirm state:
+Confirm:
 
 ```bash
-git -C "$WORKTREE_ROOT" status
+git -C "$ACTIVE_WORKDIR" status
 ```
 
-Output must show the new branch and a clean tree before implementation.
+Output must show the new branch and a clean tree before other work.
 
-## 5. Working directory rules
+Immediately tell the user once: `Locked workdir: ` plus the exact `ACTIVE_WORKDIR` string so the
+path stays in the thread.
 
-- **Git**: use `git -C "$WORKTREE_ROOT" ...` for every git subcommand on the feature branch. Do not
-  run bare `git` when the shell cwd might still be `"$ORIGINAL_ROOT"` or elsewhere.
-- **Non-git tools** (package managers, tests, linters, builds): one line per invocation so cwd
-  cannot drift, e.g. `cd "$WORKTREE_ROOT" && <command>`.
-- **File reads and writes**: paths under `"$WORKTREE_ROOT"` only. If a tool takes a repo root, pass
-  `"$WORKTREE_ROOT"`.
+## Work loop
 
-## 6. Toolchain (non-interactive)
+Explore and implement using paths under `"$ACTIVE_WORKDIR"`. Review:
 
-Bootstrap tools using only `"$WORKTREE_ROOT"`. For mise, if a config exists under the worktree: `mise
--C "$WORKTREE_ROOT" trust` then `mise -C "$WORKTREE_ROOT" install -y` when needed. For other
-manifests, `cd "$WORKTREE_ROOT" &&` with the project usual install.
+```bash
+git -C "$ACTIVE_WORKDIR" diff "origin/${base_branch}"
+```
 
-Skip steps that do not apply. No `sudo` or destructive system commands unless the user explicitly
-asked.
+Adjust the base ref if the task requires it.
 
-## 7. Implementation loop
+## Commit and push
 
-1. Explore and plan under `"$WORKTREE_ROOT"`.
-2. Implement; run tests and linters with `cd "$WORKTREE_ROOT" && ...`.
-3. Review diff: `git -C "$WORKTREE_ROOT" diff "origin/${base_branch}"` (adjust if comparing to
-   another base).
+Run the verification block again. Before staging, run a **mechanical** check and read the output:
 
-## 8. Before commit
+```bash
+git -C "$ACTIVE_WORKDIR" status -sb
+git -C "$ACTIVE_WORKDIR" diff --name-only
+```
 
-1. Run the verification block from section 4.
-2. `git -C "$WORKTREE_ROOT" add ...` and `git -C "$WORKTREE_ROOT" commit ...` only; never commit from
-   `"$ORIGINAL_ROOT"` in this flow.
+Resolve anything unexpected before `git -C "$ACTIVE_WORKDIR" add` / `commit`. Prefer normalizing
+path prefixes with `realpath` if the lists look wrong versus files you meant to touch.
 
-## 9. Before push
+Stage and commit only with `git -C "$ACTIVE_WORKDIR" ...`.
 
-1. Run the verification block from section 4 again.
-2. Do **not** push unless the user explicitly approved pushing in this conversation.
-3. If approved: `git -C "$WORKTREE_ROOT" push -u origin "<branch-slug>"` (adjust only if the user
-   asked).
+Do **not** push unless the user explicitly approved in this conversation. If approved:
 
-## 10. Subagents and delegation
+```bash
+git -C "$ACTIVE_WORKDIR" push -u origin "$BRANCH_SLUG"
+```
 
-Pass `"$WORKTREE_ROOT"` and `"$ORIGINAL_ROOT"` in text. Subagents must use `git -C "$WORKTREE_ROOT"`
-and paths under `"$WORKTREE_ROOT"` only; they must not assume workspace cwd is the worktree.
+Use the real branch name variable; adjust remote or options only if the user asked.
 
-## 11. Completion
+## Delegation
 
-Leave the worktree on disk. Report `"$WORKTREE_ROOT"` and the branch name.
+Pass `"$ACTIVE_WORKDIR"` and `"$ORIGINAL_ROOT"` in text. Subagents must follow the same path,
+`git -C`, and `gh` rules; they must not assume workspace cwd is the worktree.
+
+## Completion
+
+Leave the worktree on disk. Report `"$ACTIVE_WORKDIR"` and the branch name.

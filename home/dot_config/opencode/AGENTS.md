@@ -117,6 +117,15 @@ skill violates this directive. Skills MUST be loaded alone (never in parallel wi
 and MUST complete before acting on the governed task; loading a skill in parallel with the action it
 governs means the instructions arrive too late.
 
+- `in-worktree`: REQUIRED when the user runs `/in-worktree` or when a git worktree under `/tmp` is
+  the only checkout that may receive edits for the current task.
+- When using the `in-worktree` workflow, all file edits and all git mutations MUST target the
+  absolute path pinned as `ACTIVE_WORKDIR` for that session. Paths relative to the workspace root
+  are invalid for that work.
+- In that workflow, `git` MUST use `-C "$ACTIVE_WORKDIR"` (or `-C "$ORIGINAL_ROOT"` only for
+  bootstrap before the worktree exists). For `gh` against that repo, use
+  `cd "$ACTIVE_WORKDIR" && gh ...` or explicit `-R`; do not rely on editor workspace cwd.
+
 ## Agents
 
 - When delegating to subagents, explicitly require them to respond directly to the caller; MUST NOT
