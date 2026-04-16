@@ -1,15 +1,15 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [],
-  "model": "ollama/glm-4.7",
+  "model": "{{ .models.default }}",
   "agent": {
     "general": {
       "tools": { "question": false },
-      "model": "ollama/glm-4.7",
+      "model": "{{ .models.default }}",
     },
     "explore": {
       "tools": { "question": false },
-      "model": "ollama/glm-4.7",
+      "model": "{{ .models.default }}",
     },
   },
   "provider": {
