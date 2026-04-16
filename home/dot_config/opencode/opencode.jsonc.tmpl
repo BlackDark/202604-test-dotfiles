@@ -9,6 +9,10 @@
   "compaction": { "auto": false },
   "model": "{{ .models.default }}",
   "agent": {
+    "plan": { "disable": true },
+    "compaction": {
+      "model": "fireworks-ai/accounts/fireworks/routers/kimi-k2p5-turbo",
+    },
     "general": {
       "tools": { "question": false },
       "model": "{{ .models.general }}",
