@@ -7,6 +7,9 @@
     "Additional self-hosted AzDO hostnames for SSH" "" -}}
 {{- end -}}
 
+{{- $terminal_font_size := promptIntOnce . "terminal.fontSize"
+    "Terminal font size (points)" 10 -}}
+
 ######################################################################################
 ## According to the docs, this must remain above all other configuration
 encryption = "age"
@@ -44,6 +47,8 @@ color = "on"
     commit = "anthropic/claude-opus-4-6"
 {{- end }}
 
+[data.terminal]
+    fontSize = {{ $terminal_font_size }}
 
 [edit]
 {{- if lookPath "code" }}
