@@ -4,4 +4,4 @@
 # After each successful cherry-pick, set this file to that upstream commit's SHA (replace the line
 # below). Scripts must read the hash with grep so comments are ignored, e.g.:
 #   LAST=$(grep -E '^[0-9a-f]{40}$' GIT_LAST_CHERRYPICK_HASH | head -1)
-7587f8b9b53d68e4375769bbcc00e96d506dc203
+8cbe11c8db8264d96f719c98ec9190178c514839
